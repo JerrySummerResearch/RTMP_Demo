@@ -38,23 +38,6 @@ class CVCounter():
 def time_passed(old_time, sec=1):
     return time.time() - old_time >= sec
 
-def start_streaming(args, fps):
-    process = (
-        ffmpeg
-        .input('pipe:', format='rawvideo',codec="rawvideo", pix_fmt='bgr24', s=f"{args.img_size[0]}x{args.img_size[1]}",)
-        .output(
-            args.rtmp_mrl,
-            #codec = "copy", # use same codecs of the original video
-            listen=1, # enables HTTP server
-            pix_fmt="yuv420p",
-            preset="ultrafast",
-            f='flv'
-        )
-        .overwrite_output()
-        .run_async(pipe_stdin=True)
-    )
-    return process
-
 def push_video_counter(args):
     cv_counter = CVCounter(args)
     start_time = time.time()
@@ -63,11 +46,11 @@ def push_video_counter(args):
     command = ['ffmpeg',
             #    '-re',
                '-f', 'rawvideo',
-            '-y',
+               '-y',
                '-vcodec', 'rawvideo',
                '-pix_fmt', 'bgr24',
                '-s', f"{args.img_size[0]}x{args.img_size[1]}",
-               '-r', '1',
+               '-r', '10',
                '-i', '-',
                '-c:v', 'libx264',
                '-pix_fmt', 'yuv420p',
@@ -77,35 +60,17 @@ def push_video_counter(args):
                args.rtmp_mrl]
     p = subprocess.Popen(command, stdin=subprocess.PIPE, shell=False)
 
-    pipe = (
-        ffmpeg
-            .input('pipe:', r='0.2', stream_loop='1')
-            # .input('pipe:', r='3', f='image2')
-            # .output(args.rtmp_mrl, vcodec='libx264', pix_fmt='yuv420p', preset='veryfast', r='20', g='50', video_bitrate='1.4M', maxrate='2M', bufsize='2M', segment_time='6', format='flv') # s?
-            .output(args.rtmp_mrl, r='20', format='flv')
-            .run_async(pipe_stdin=True)
-    )
-
     while (not time_passed(start_time, sec=args.tot_sec)):
         img = cv_counter.create_img()
-        print(cv_counter.get_cnt())
         p.stdin.write(img.tobytes())
 
-        # cv2.imshow('Push Frame', img)
-        # if cv2.waitKey(int(round(1000/1))) == 27:
-        #     break
-        # check time
-        # while (not time_passed(old_time, sec=1)):
-        #     time.sleep(0.2)
-        
-        # if (time_passed(old_time, sec=1)):
-        #     # update old_time in the inner while loop
-        #     old_time = time.time()
-        time.sleep(1)
-        # update cv_counter cnt
-        cv_counter.set_cnt(cv_counter.get_cnt() + 1)
+        if time_passed(old_time, sec=1):
+            # update cv_counter cnt
+            print(cv_counter.get_cnt())
+            cv_counter.set_cnt(cv_counter.get_cnt() + 1)
+            old_time = time.time()
 
-    time.sleep(20)
+        time.sleep(0.2)
     p.stdin.close()
     cv2.destroyAllWindows()
 
@@ -117,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('--rtmp_mrl', type=str, default='rtmp://127.0.0.1:1935/live/stream')
     parser.add_argument('--tot_sec', type=int, default=180) # total seconds
     parser.add_argument('--img_size', type=int, nargs="*", default=[300, 200])
-    parser.add_argument('--fontsize', type=int, default=24)
+    parser.add_argument('--fontsize', type=int, default=48)
 
 
     args = parser.parse_args()
