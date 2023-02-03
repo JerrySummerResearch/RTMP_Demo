@@ -78,7 +78,7 @@ def push_video_counter(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--video_source', type=str, default='rt_counter') # real-time counter
+    parser.add_argument('--video_source', type=str, default='rt_counter', choices=['rt_counter']) # real-time counter
     parser.add_argument('--rtmp_mrl', type=str, default='rtmp://127.0.0.1:1935/live/stream')
     parser.add_argument('--tot_sec', type=int, default=180) # total seconds
     parser.add_argument('--img_size', type=int, nargs="*", default=[300, 200])
@@ -89,6 +89,6 @@ if __name__ == '__main__':
 
     if args.video_source == 'rt_counter':
         push_video_counter(args)
+    else:
+        raise NotImplementedError
 
-
-# ffmpeg -re -i test_youtube.mp4 -c:v copy -c:a aac -ar 44100 -ac 1 -f flv rtmp://127.0.0.1:1935/live/stream
